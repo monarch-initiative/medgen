@@ -1,0 +1,14 @@
+# Standard
+dev/
+data/cache/
+__pycache__/
+.idea/
+.DS_Store
+.env
+
+# Specialized
+*ignore/
+_archive/
+tmp/
+.ipynb_checkpoints/
+
