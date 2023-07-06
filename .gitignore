@@ -7,8 +7,12 @@ __pycache__/
 .env
 
 # Specialized
+/ftp.ncbi.nlm.nih.gov/
+/fetch
+/*.tsv
+/*.obo
+/*.tmp
 *ignore/
 _archive/
 tmp/
 .ipynb_checkpoints/
-
