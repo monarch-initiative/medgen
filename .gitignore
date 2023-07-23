@@ -1,20 +1,22 @@
 # Standard
 dev/
 data/cache/
+output/
 __pycache__/
 .idea/
 .DS_Store
 .env
 
 # Specialized
+/*.json
 /*.obo
 /*.owl
 /*.tmp
 /*.tsv
 /fetch
 /ftp.ncbi.nlm.nih.gov/
-/release/
 *ignore/
-_archive/
-tmp/
 .ipynb_checkpoints/
+_archive/
+release/
+tmp/

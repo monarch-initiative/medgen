@@ -1,0 +1,21 @@
+creator_id: 0000-0002-2906-7319
+curie_map:
+  GTR: http://purl.obolibrary.org/obo/mondo/mappings/unknown_prefix/GTR/
+  HP: http://purl.obolibrary.org/obo/HP_
+  MESH: http://identifiers.org/mesh/
+  MONDO: http://purl.obolibrary.org/obo/MONDO_
+  MedGen: http://purl.obolibrary.org/obo/Medgen_
+  MedGen_UID: http://purl.obolibrary.org/obo/Medgen_UID_
+  NCIT: http://purl.obolibrary.org/obo/NCIT_
+  OMIM: https://omim.org/entry/
+  Orphanet: http://www.orpha.net/ORDO/Orphanet_
+  SCTID: http://identifiers.org/snomedct/
+  UMLS: http://purl.obolibrary.org/obo/UMLS_
+  oboInOwl: http://www.geneontology.org/formats/oboInOwl#
+  owl: http://www.w3.org/2002/07/owl#
+  rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  semapv: https://w3id.org/semapv/
+  skos: http://www.w3.org/2004/02/skos/core#
+  sssom: https://w3id.org/sssom/
+license: http://w3id.org/sssom/license/unspecified

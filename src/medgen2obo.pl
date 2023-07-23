@@ -82,7 +82,7 @@ while(<F>) {
     chomp;
     my ($u,$c) = split(/\t/,$_);
     $uh{$c} = $u;
-    $th{$c}->{xrefs}->{"MEDGEN:$u"} = 1;
+    $th{$c}->{xrefs}->{"MedGen_UID:$u"} = 1;
 }
 close(F);
 
@@ -104,9 +104,49 @@ print "\n";
 my @ids = keys %th;
 @ids = sort @ids;
 foreach my $id (@ids) {
+    if ($id =~ /^C\d+/) {
+        # TODO: repurpose to func (this is instance 1/2)
+        my $h = $th{$id};
+        print "[Term]\n";
+        print "id: UMLS:$id\n";
+        print "name: $h->{name}\n";
+        foreach my $x (keys %{$h->{xrefs}}) {
+            $x =~ s@MSH:@MESH:@;
+            $x =~ s@NCI:@NCIT:@;
+            $x =~ s@SNOMEDCT_US:@SCTID:@;
+            print "xref: $x\n";
+        }
+        foreach (keys %{$ssh{$id} || {}}) {
+            my $ss = mk_subset($_);
+            print "subset: $ss\n";
+        }
+        foreach my $s (@{$h->{synonyms}}) {
+            my ($str, $x)= @$s;
+            $str = escq($str);
+            print "synonym: \"$str\" RELATED [$x]\n";
+        }
+        my $trelh = $rh{$id};
+        foreach my $rel (keys %{$trelh}) {
+            my $vh = $trelh->{$rel};
+            foreach my $v (keys %$vh) {
+                unless ($v eq $id) {
+                    my $tag = "relationship: $rel";
+                    if ($rel eq 'isa') {
+                        $tag = 'is_a:';
+                    }
+                    if ($rel eq 'mapped_to') {
+                        $tag = 'equivalent_to:';
+                    }
+                    print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                }
+            }
+        }
+        print "\n";
+    }
+    # TODO: repurpose to func (this is instance 2/2)
     my $h = $th{$id};
     print "[Term]\n";
-    print "id: UMLS:$id\n";
+    print "id: MedGen:$id\n";
     print "name: $h->{name}\n";
     foreach my $x (keys %{$h->{xrefs}}) {
         $x =~ s@MSH:@MESH:@;
