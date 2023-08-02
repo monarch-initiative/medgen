@@ -2,18 +2,17 @@
 # Running `make all` will run the full pipeline. Note that if the FTP files have already been downloaded, it'll skip
 # that part. In order to force re-download, run `make all -B`.
 .DEFAULT_GOAL := all
-.PHONY: all build stage stage-% release-artefacts analysis-artefacts clean deploy-release
+.PHONY: all build stage stage-% analyze clean deploy-release
 
 OBO=http://purl.obolibrary.org/obo
 PRODUCTS=medgen-disease-extract.obo medgen-disease-extract.owl
 TODAY ?=$(shell date +%Y-%m-%d)
 VERSION=v$(TODAY)
 
-all: build stage clean
-release-artefacts: $(PRODUCTS) medgen.sssom.tsv
-# analysis-artefacts runs more than just this file; that goal creates multiple files
-analysis-artefacts: medgen_terms_mapping_status.tsv
-build: release-artefacts analysis-artefacts
+all: build stage clean analyze
+# analyze: runs more than just this file; that goal creates multiple files
+analyze: output/medgen_terms_mapping_status.tsv
+build: $(PRODUCTS) medgen.sssom.tsv
 stage: $(patsubst %, stage-%, $(PRODUCTS))
 	mv medgen.obo output/release/
 	mv medgen.sssom.tsv output/release/
@@ -92,5 +91,6 @@ deploy-release: | output/release/
 tmp/input/mondo.sssom.tsv: | tmp/input/
 	wget http://purl.obolibrary.org/obo/mondo/mappings/mondo.sssom.tsv -O $@
 
+# creates more than just this file; that goal creates multiple files
 output/medgen_terms_mapping_status.tsv output/obsoleted_medgen_terms_in_mondo.txt: | output/
 	python src/mondo_mapping_status.py

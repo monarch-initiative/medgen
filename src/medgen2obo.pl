@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 
+# Vars
 my %th = ();
 my %rh = ();
 my %dh = ();
@@ -10,6 +11,7 @@ my %styh = ();
 
 our $PATH = "ftp.ncbi.nlm.nih.gov/pub/medgen";
 
+# Execution
 open(F,"gzip -dc $PATH/MGCONSO.RRF.gz|") || die;
 while(<F>) {
     next if m@^#@;
@@ -82,7 +84,7 @@ while(<F>) {
     chomp;
     my ($u,$c) = split(/\t/,$_);
     $uh{$c} = $u;
-    $th{$c}->{xrefs}->{"MedGen_UID:$u"} = 1;
+    $th{$c}->{xrefs}->{"MedGen:$u"} = 1;
 }
 close(F);
 
@@ -101,57 +103,18 @@ foreach (keys %styh) {
 }
 print "\n";
 
-my @ids = keys %th;
-@ids = sort @ids;
-foreach my $id (@ids) {
-    if ($id =~ /^C\d+/) {
-        # TODO: repurpose to func (this is instance 1/2)
-        my $h = $th{$id};
-        print "[Term]\n";
-        print "id: UMLS:$id\n";
-        print "name: $h->{name}\n";
-        foreach my $x (keys %{$h->{xrefs}}) {
-            $x =~ s@MSH:@MESH:@;
-            $x =~ s@NCI:@NCIT:@;
-            $x =~ s@SNOMEDCT_US:@SCTID:@;
-            print "xref: $x\n";
-        }
-        foreach (keys %{$ssh{$id} || {}}) {
-            my $ss = mk_subset($_);
-            print "subset: $ss\n";
-        }
-        foreach my $s (@{$h->{synonyms}}) {
-            my ($str, $x)= @$s;
-            $str = escq($str);
-            print "synonym: \"$str\" RELATED [$x]\n";
-        }
-        my $trelh = $rh{$id};
-        foreach my $rel (keys %{$trelh}) {
-            my $vh = $trelh->{$rel};
-            foreach my $v (keys %$vh) {
-                unless ($v eq $id) {
-                    my $tag = "relationship: $rel";
-                    if ($rel eq 'isa') {
-                        $tag = 'is_a:';
-                    }
-                    if ($rel eq 'mapped_to') {
-                        $tag = 'equivalent_to:';
-                    }
-                    print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
-                }
-            }
-        }
-        print "\n";
-    }
-    # TODO: repurpose to func (this is instance 2/2)
+sub add_triples {
+    my ($prefix, $id) = @_;
+
     my $h = $th{$id};
     print "[Term]\n";
-    print "id: MedGen:$id\n";
+    print "id: $prefix:$id\n";
     print "name: $h->{name}\n";
     foreach my $x (keys %{$h->{xrefs}}) {
         $x =~ s@MSH:@MESH:@;
         $x =~ s@NCI:@NCIT:@;
         $x =~ s@SNOMEDCT_US:@SCTID:@;
+        # TODO: change these to skos:exactMatch?
         print "xref: $x\n";
     }
     foreach (keys %{$ssh{$id} || {}}) {
@@ -173,13 +136,38 @@ foreach my $id (@ids) {
                     $tag = 'is_a:';
                 }
                 if ($rel eq 'mapped_to') {
-                    $tag = 'equivalent_to:';
+                    # TODO: change these to skos:exactMatch?
+                    $tag = 'equivalent_to:';  # This translates to owl:equivalentClass
+                    # $tag = 'xref:';  # want to get this to translate to skos:exactMatch, but got oboInOwl:hasDbXref instead
                 }
-                print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                # Namespaces: Different ones based on if is a UMLS CUI (C#), a MedGen CUI Novel (CN#), or a MedGEn UID (#).
+                if ($v =~ /^CN\d+/) {
+                    print "$tag MedGenCUI:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                } else {
+                    # If a CUI (starts with 'C'), will be created twice: one for MedGen, one for UMLS
+                    if ($v =~ /^C\d+/) {
+                        print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                    }
+                    print "$tag MedGen:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                }
             }
         }
     }
     print "\n";
+}
+my @ids = keys %th;
+@ids = sort @ids;
+foreach my $id (@ids) {
+    # Namespaces: Different ones based on if is a UMLS CUI (C#), a MedGen CUI Novel (CN#), or a MedGEn UID (#).
+    if ($id =~ /^CN\d+/) {
+        add_triples('MedGenCUI', $id);
+    } else {
+        # If a CUI (starts with 'C'), will be created twice: one for MedGen, one for UMLS
+        if ($id =~ /^C\d+/) {
+            add_triples('UMLS', $id);
+        }
+        add_triples('MedGen', $id);
+    }
 }
 
 exit 0;

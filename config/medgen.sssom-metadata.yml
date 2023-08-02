@@ -4,8 +4,8 @@ curie_map:
   HP: http://purl.obolibrary.org/obo/HP_
   MESH: http://identifiers.org/mesh/
   MONDO: http://purl.obolibrary.org/obo/MONDO_
-  MedGen: http://purl.obolibrary.org/obo/Medgen_
-  MedGen_UID: http://purl.obolibrary.org/obo/Medgen_UID_
+  MedGen: http://purl.obolibrary.org/obo/MedGen_
+  MedGenCUI: http://purl.obolibrary.org/obo/MedGenCUI_
   NCIT: http://purl.obolibrary.org/obo/NCIT_
   OMIM: https://omim.org/entry/
   Orphanet: http://www.orpha.net/ORDO/Orphanet_

@@ -12,9 +12,14 @@ INPUT_DIR = PROJECT_DIR / 'tmp' / 'input'
 MONDO_SSSOM_TSV = INPUT_DIR / 'mondo.sssom.tsv'
 MEDGEN_SSSOM_TSV = RELEASE_OUTDIR / 'medgen.sssom.tsv'
 # MEDGEN_PREFIXES: Some of these are old, some are new, some may not be used.
-MEDGEN_PREFIXES = ['Medgen', 'MedGen', 'MEDGEN', 'Medgen_UID', 'MedGen_UID', 'UMLS', 'UMLS_CUI']
+# todo: If I couldn't convert SSSOM properly with MedGen_CUI, souldn't UMLS_CUI have a problem? though i think it's just coming from previous work in mondo maybe. it's not being used in this ingest
+MEDGEN_PREFIXES = [
+    'Medgen', 'MedGen', 'MEDGEN', 'MedGenCUI', 'UMLS', 'UMLS_CUI',
+    # 'Medgen_UID', 'MedGen_UID', 'Medgen_CUI', 'MedGen_CUI', 'Medgen_CUI'
+]
 CURIE = str
 
+# TODO: Mappings can be considered skos:exactMatch
 
 def ids_prefixless(ids: Set[str]) -> Set[str]:
     """Remove prefix"""
@@ -92,16 +97,19 @@ def medgen_mondo_mapping_status(mondo_predicate_filter: List[str] = None):
     file_suffix = '' if not mondo_predicate_filter \
         else '-mondo-exacts-only' if mondo_predicate_filter == ['skos:exactMatch'] \
         else '-custom'
+
     # Read sources
     medgen_all_ids, medgen_in_medgen, medgen_in_mondo = \
         read_mapping_sources(mondo_predicate_filter=mondo_predicate_filter)
+
     # Special operations
     # - Inconsistent prefixes between what Mondo used before and will going forward. In this case, stripping prefixes
     # should be OK, at least for now.
     medgen_all_ids = ids_prefixless(medgen_all_ids)
     medgen_in_medgen = ids_prefixless(medgen_in_medgen)
     medgen_in_mondo = ids_prefixless(medgen_in_mondo)
-    # Report
+
+    # Generate reports
     report_obs_medgen_in_mondo(medgen_in_mondo, medgen_in_medgen)
     report_existing_overlap(medgen_all_ids, medgen_in_medgen, medgen_in_mondo, file_suffix)
 
