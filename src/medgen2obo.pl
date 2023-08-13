@@ -84,7 +84,7 @@ while(<F>) {
     chomp;
     my ($u,$c) = split(/\t/,$_);
     $uh{$c} = $u;
-    $th{$c}->{xrefs}->{"MedGen:$u"} = 1;
+    $th{$c}->{xrefs}->{"MEDGEN:$u"} = 1;
 }
 close(F);
 
@@ -140,15 +140,16 @@ sub add_triples {
                     $tag = 'equivalent_to:';  # This translates to owl:equivalentClass
                     # $tag = 'xref:';  # want to get this to translate to skos:exactMatch, but got oboInOwl:hasDbXref instead
                 }
-                # Namespaces: Different ones based on if is a UMLS CUI (C#), a MedGen CUI Novel (CN#), or a MedGEn UID (#).
+                # Namespaces: Different ones based on if is a UMLS CUI (C#), a MEDGEN CUI Novel (CN#), or a MedGEn UID (#).
                 if ($v =~ /^CN\d+/) {
-                    print "$tag MedGenCUI:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                    print "$tag MEDGENCUI:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                # If a CUI (starts with 'C'), will be created twice: one for MEDGENCUI, one for UMLS
+                } elsif ($v =~ /^C\d+/) {
+                    print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                    print "$tag MEDGENCUI:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                # UID
                 } else {
-                    # If a CUI (starts with 'C'), will be created twice: one for MedGen, one for UMLS
-                    if ($v =~ /^C\d+/) {
-                        print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
-                    }
-                    print "$tag MedGen:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                    print "$tag MEDGEN:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
                 }
             }
         }
@@ -160,13 +161,14 @@ my @ids = keys %th;
 foreach my $id (@ids) {
     # Namespaces: Different ones based on if is a UMLS CUI (C#), a MedGen CUI Novel (CN#), or a MedGEn UID (#).
     if ($id =~ /^CN\d+/) {
-        add_triples('MedGenCUI', $id);
+        add_triples('MEDGENCUI', $id);
+    # If a CUI (starts with 'C'), will be created twice: one for MEDGENCUI, one for UMLS
+    } elsif ($id =~ /^C\d+/) {
+        add_triples('UMLS', $id);
+        add_triples('MEDGENCUI', $id);
+    # UID
     } else {
-        # If a CUI (starts with 'C'), will be created twice: one for MedGen, one for UMLS
-        if ($id =~ /^C\d+/) {
-            add_triples('UMLS', $id);
-        }
-        add_triples('MedGen', $id);
+        add_triples('MEDGEN', $id);
     }
 }
 

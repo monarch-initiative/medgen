@@ -14,7 +14,7 @@ MEDGEN_SSSOM_TSV = RELEASE_OUTDIR / 'medgen.sssom.tsv'
 # MEDGEN_PREFIXES: Some of these are old, some are new, some may not be used.
 # todo: If I couldn't convert SSSOM properly with MedGen_CUI, souldn't UMLS_CUI have a problem? though i think it's just coming from previous work in mondo maybe. it's not being used in this ingest
 MEDGEN_PREFIXES = [
-    'Medgen', 'MedGen', 'MEDGEN', 'MedGenCUI', 'UMLS', 'UMLS_CUI',
+    'MEDGEN', 'Medgen', 'MedGen', 'MEDGENCUI', 'MedGenCUI', 'UMLS', 'UMLS_CUI',
     # 'Medgen_UID', 'MedGen_UID', 'Medgen_CUI', 'MedGen_CUI', 'Medgen_CUI'
 ]
 CURIE = str
