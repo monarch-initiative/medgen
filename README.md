@@ -9,6 +9,7 @@ On MacOS, (3) and (4) should be available without the need for installation.
 
 ## Setup
 1. Give permission to run Perl: `chmod +x ./bin/*.pl`
+2. Install Python dependencies: `pip install -r requirements.txt`
 
 ## Running the ingest
 Run: `make all`

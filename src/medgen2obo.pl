@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 
+# Vars
 my %th = ();
 my %rh = ();
 my %dh = ();
@@ -10,6 +11,7 @@ my %styh = ();
 
 our $PATH = "ftp.ncbi.nlm.nih.gov/pub/medgen";
 
+# Execution
 open(F,"gzip -dc $PATH/MGCONSO.RRF.gz|") || die;
 while(<F>) {
     next if m@^#@;
@@ -101,17 +103,18 @@ foreach (keys %styh) {
 }
 print "\n";
 
-my @ids = keys %th;
-@ids = sort @ids;
-foreach my $id (@ids) {
+sub add_triples {
+    my ($prefix, $id) = @_;
+
     my $h = $th{$id};
     print "[Term]\n";
-    print "id: UMLS:$id\n";
+    print "id: $prefix:$id\n";
     print "name: $h->{name}\n";
     foreach my $x (keys %{$h->{xrefs}}) {
         $x =~ s@MSH:@MESH:@;
         $x =~ s@NCI:@NCIT:@;
         $x =~ s@SNOMEDCT_US:@SCTID:@;
+        # TODO: change these to skos:exactMatch?
         print "xref: $x\n";
     }
     foreach (keys %{$ssh{$id} || {}}) {
@@ -133,13 +136,40 @@ foreach my $id (@ids) {
                     $tag = 'is_a:';
                 }
                 if ($rel eq 'mapped_to') {
-                    $tag = 'equivalent_to:';
+                    # TODO: change these to skos:exactMatch?
+                    $tag = 'equivalent_to:';  # This translates to owl:equivalentClass
+                    # $tag = 'xref:';  # want to get this to translate to skos:exactMatch, but got oboInOwl:hasDbXref instead
                 }
-                print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                # Namespaces: Different ones based on if is a UMLS CUI (C#), a MEDGEN CUI Novel (CN#), or a MedGEn UID (#).
+                if ($v =~ /^CN\d+/) {
+                    print "$tag MEDGENCUI:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                # If a CUI (starts with 'C'), will be created twice: one for MEDGENCUI, one for UMLS
+                } elsif ($v =~ /^C\d+/) {
+                    print "$tag UMLS:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                    print "$tag MEDGENCUI:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                # UID
+                } else {
+                    print "$tag MEDGEN:$v {source=\"$vh->{$v}\"} ! $th{$v}->{name}\n";
+                }
             }
         }
     }
     print "\n";
+}
+my @ids = keys %th;
+@ids = sort @ids;
+foreach my $id (@ids) {
+    # Namespaces: Different ones based on if is a UMLS CUI (C#), a MedGen CUI Novel (CN#), or a MedGEn UID (#).
+    if ($id =~ /^CN\d+/) {
+        add_triples('MEDGENCUI', $id);
+    # If a CUI (starts with 'C'), will be created twice: one for MEDGENCUI, one for UMLS
+    } elsif ($id =~ /^C\d+/) {
+        add_triples('UMLS', $id);
+        add_triples('MEDGENCUI', $id);
+    # UID
+    } else {
+        add_triples('MEDGEN', $id);
+    }
 }
 
 exit 0;
