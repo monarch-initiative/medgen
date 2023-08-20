@@ -4,8 +4,8 @@
 name: Build and release
 
 on:
-  schedule:
-    - cron: "0 0 * * 0"  # weekly on Sunday at midnight
+#  schedule:
+#    - cron: "0 0 * * 0"  # weekly on Sunday at midnight
   workflow_dispatch:
 
 jobs:
