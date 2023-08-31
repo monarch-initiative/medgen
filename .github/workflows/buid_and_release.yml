@@ -4,9 +4,9 @@
 name: Build and release
 
 on:
-#  schedule:
-#    - cron: "0 0 * * 0"  # weekly on Sunday at midnight
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"  # weekly on Sunday at midnight
 
 jobs:
   build_and_release:
@@ -15,7 +15,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: make all
+      # todo: reactivate `make all`, pending pending https://github.com/monarch-initiative/medgen/issues/11
+#      run: make all
+      run: make minimal
     - name: Get current time
       uses: josStorer/get-current-time@v2.0.2
       id: current-time
@@ -29,7 +31,11 @@ jobs:
         automatic_release_tag: "${{ steps.current-time.outputs.formattedTime }}"
         title: "${{ steps.current-time.outputs.formattedTime }}"
         prerelease: false
+        # todo: add back `release/medgen-disease-extract.owl`, pending https://github.com/monarch-initiative/medgen/issues/11
+        # todo: add `medgen.sssom.tsv`, pending https://github.com/monarch-initiative/medgen/issues/6
+#          output/release/medgen-disease-extract.owl
+#          output/release/medgen.sssom.tsv
         files: |
-          release/medgen.obo
-          release/medgen-disease-extract.obo
-          release/medgen-disease-extract.owl
+          output/release/medgen.obo
+          output/release/medgen-disease-extract.obo
+          output/release/medgen-xrefs.robot.template.tsv

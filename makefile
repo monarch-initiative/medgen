@@ -2,26 +2,34 @@
 # Running `make all` will run the full pipeline. Note that if the FTP files have already been downloaded, it'll skip
 # that part. In order to force re-download, run `make all -B`.
 .DEFAULT_GOAL := all
-.PHONY: all build stage stage-% analyze clean deploy-release
+.PHONY: all build stage stage-% analyze clean deploy-release build-lite minimal
 
 OBO=http://purl.obolibrary.org/obo
 PRODUCTS=medgen-disease-extract.obo medgen-disease-extract.owl
 TODAY ?=$(shell date +%Y-%m-%d)
 VERSION=v$(TODAY)
 
+minimal: build-lite stage-lite clean
+# stage-lite: These commented out files are produced by `all` but not by `minimal`. Just left here for reference. See: https://github.com/monarch-initiative/medgen/issues/11
+stage-lite: | output/release/
+#	mv medgen-disease-extract.owl output/release/
+#	mv medgen.sssom.tsv output/release/
+	mv medgen.obo output/release/
+	mv medgen-disease-extract.obo output/release/
+	mv medgen-xrefs.robot.template.tsv output/release/
+build-lite: medgen-disease-extract.obo medgen-xrefs.robot.template.tsv
+
 all: build stage clean analyze
 # analyze: runs more than just this file; that goal creates multiple files
 analyze: output/medgen_terms_mapping_status.tsv
-build: $(PRODUCTS) medgen.sssom.tsv
+build: $(PRODUCTS)
 stage: $(patsubst %, stage-%, $(PRODUCTS))
-	mv medgen.obo output/release/
-	mv medgen.sssom.tsv output/release/
 stage-%: % | output/release/
 	mv $< output/release/
 clean:
-	rm medgen.obographs.json
-	rm uid2cui.tsv
-	rm *.obo
+	rm -f medgen.obographs.json
+	rm -f uid2cui.tsv
+	rm -f *.obo
 
 # ----------------------------------------
 # Setup dirs
@@ -36,18 +44,18 @@ output/release/:
 # ----------------------------------------
 # ETL
 # ----------------------------------------
-ftp.ncbi.nlm.nih.gov:
+ftp.ncbi.nlm.nih.gov/:
 	wget -r -np ftp://ftp.ncbi.nlm.nih.gov/pub/medgen/ && touch $@
 
-uid2cui.tsv:
+uid2cui.tsv: ftp.ncbi.nlm.nih.gov/
 	./src/make_uid2cui.pl > $@
 
 # ----------------------------------------
 # Main artefacts
 # ----------------------------------------
 # Hacky conversion to obo ----------------
-# Relies on MGCONSO.RRF.gz etc being made by 'ftp.ncbi.nlm.nih.gov' step
-medgen.obo: ftp.ncbi.nlm.nih.gov uid2cui.tsv
+# Relies on MGCONSO.RRF.gz etc being made by 'ftp.ncbi.nlm.nih.gov/' step
+medgen.obo: ftp.ncbi.nlm.nih.gov/ uid2cui.tsv
 	./src/medgen2obo.pl > $@.tmp && mv $@.tmp $@
 
 # We only care about diseases for now
@@ -92,5 +100,15 @@ tmp/input/mondo.sssom.tsv: | tmp/input/
 	wget http://purl.obolibrary.org/obo/mondo/mappings/mondo.sssom.tsv -O $@
 
 # creates more than just this file; that goal creates multiple files
-output/medgen_terms_mapping_status.tsv output/obsoleted_medgen_terms_in_mondo.txt: | output/
+output/medgen_terms_mapping_status.tsv output/obsoleted_medgen_terms_in_mondo.txt: tmp/input/mondo.sssom.tsv | output/
 	python src/mondo_mapping_status.py
+
+# ----------------------------------------
+# Robot templates
+# ----------------------------------------
+ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt: ftp.ncbi.nlm.nih.gov/
+	gzip -d ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz
+
+# todo: Ideally I wanted this done at the end of the ingest, permuting from medgen.sssom.tsv, but there were some problems with that file. Eventually changing to that feels like it makes more sense. Will have already been pre-curated by disease. And some of the logic in this Python script is duplicative.
+medgen-xrefs.robot.template.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
+	python src/mondo_robot_template.py -i $< -o $@
