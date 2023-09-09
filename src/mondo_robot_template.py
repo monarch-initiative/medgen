@@ -18,6 +18,11 @@ PROJECT_DIR = SRC_DIR.parent
 FTP_DIR = PROJECT_DIR / "ftp.ncbi.nlm.nih.gov" / "pub" / "medgen"
 INPUT_FILE = str(FTP_DIR / "MedGenIDMappings.txt")
 OUTPUT_FILE = str(PROJECT_DIR / "medgen-xrefs.robot.template.tsv")
+ROBOT_ROW_MAP = {
+    'mondo_id': 'ID',
+    'xref_id': 'A oboInOwl:hasDbXref',
+    'source_id': '>A oboInOwl:source'
+}
 
 
 def _prefixed_id_rows_from_common_df(source_df: pd.DataFrame, mondo_col='mondo_id', xref_col='xref_id') -> List[Dict]:
@@ -29,9 +34,10 @@ def _prefixed_id_rows_from_common_df(source_df: pd.DataFrame, mondo_col='mondo_i
     df = copy(source_df)
     df[xref_col] = df[xref_col].apply(
         lambda x: f'MEDGENCUI:{x}' if x.startswith('CN')  # "CUI Novel"
-        else f'UMLS:{x}' if x.startswith('C')  # CUI: will be created twice: one for MEDGENCUI, one for UMLS
+        else f'UMLS:{x}' if x.startswith('C')  # CUI 1 of 2: UMLS
         else f'MEDGEN:{x}')  # UID
     rows = df.to_dict('records')
+    # CUI 2 of 2: MEDGENCUI:
     rows2 = [{mondo_col: x[mondo_col], xref_col: x[xref_col].replace('UMLS', 'MEDGENCUI')} for x in rows if
              x[xref_col].startswith('UMLS')]
     return rows + rows2
@@ -50,13 +56,14 @@ def run(input_file: str = INPUT_FILE, output_file: str = OUTPUT_FILE):
     # - Done by proxy: UID <-> CUI <-> MONDO
     df_medgen_medgenuid = df[df['source'] == 'MedGen'][['source_id', 'xref_id']].rename(
         columns={'source_id': 'medgen_uid'})
-    out_df_uid = pd.merge(df_medgen_mondo, df_medgen_medgenuid, on='xref_id')[['mondo_id', 'medgen_uid']]\
-        .rename(columns={'medgen_uid': 'xref_id'})
+    out_df_uid = pd.merge(df_medgen_mondo, df_medgen_medgenuid, on='xref_id').rename(
+        columns={'xref_id': 'source_id', 'medgen_uid': 'xref_id'})[['mondo_id', 'xref_id', 'source_id']]
     out_df_uid['xref_id'] = out_df_uid['xref_id'].apply(lambda x: f'MEDGEN:{x}')
+    out_df_uid['source_id'] = out_df_uid['source_id'].apply(lambda x: f'UMLS:{x}')
 
     # Save
-    out_df = pd.concat([out_df_cui_cn, out_df_uid]).sort_values(['xref_id', 'mondo_id']).drop_duplicates()
-    out_df = pd.concat([pd.DataFrame([{'mondo_id': 'ID', 'xref_id': 'A oboInOwl:hasDbXref'}]), out_df])
+    out_df = pd.concat([out_df_cui_cn, out_df_uid]).sort_values(['xref_id', 'mondo_id']).drop_duplicates().fillna('')
+    out_df = pd.concat([pd.DataFrame([ROBOT_ROW_MAP]), out_df])
     out_df.to_csv(output_file, index=False, sep='\t')
 
 def cli():
