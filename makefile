@@ -109,6 +109,8 @@ output/medgen_terms_mapping_status.tsv output/obsoleted_medgen_terms_in_mondo.tx
 ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt: ftp.ncbi.nlm.nih.gov/
 	gzip -d ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz
 
-# todo: Ideally I wanted this done at the end of the ingest, permuting from medgen.sssom.tsv, but there were some problems with that file. Eventually changing to that feels like it makes more sense. Will have already been pre-curated by disease. And some of the logic in this Python script is duplicative.
+# todo: Ideally I wanted this done at the end of the ingest, permuting from medgen.sssom.tsv, but there were some
+# problems with that file. Eventually changing to that feels like it makes more sense. Will have already been
+# pre-curated by disease. And some of the logic in this Python script is duplicative.
 medgen-xrefs.robot.template.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
 	python src/mondo_robot_template.py -i $< -o $@
