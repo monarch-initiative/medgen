@@ -1,12 +1,13 @@
 # MedGen ingest
 
-## Prerequisites
-On macOS, (2) and (3) should be available without the need for installation.
+## Prerequisites 
+On macOS, Perl should be available without the need for installation.
+Python and Perl are also dev dependencies. They're not needed to run the docker containers, but they are needed for 
+local development situations / debugging.
 1. Python 3.9+
-2. `make`
-3. Perl
-4. Docker
-5. Docker images  
+2. Perl
+3. Docker
+4. Docker images  
   One or both of the following, depending on if you want to run the stable build `latest` or `dev`:
     - a. `docker pull obolibrary/odkfull:latest`
     - b. `docker pull obolibrary/odkfull:dev` 
