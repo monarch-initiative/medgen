@@ -12,7 +12,7 @@ local development situations / debugging.
     - a. `docker pull obolibrary/odkfull:latest`
     - b. `docker pull obolibrary/odkfull:dev` 
 
-## Setup
+## Local development setup
 1. Give permission to run Perl: `chmod +x ./bin/*.pl`
 2. Install Python dependencies: `pip install -r requirements.txt`
 

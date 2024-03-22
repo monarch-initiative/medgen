@@ -7,11 +7,11 @@ See also:
 - Used here: https://github.com/monarch-initiative/mondo/pull/6560
 """
 from argparse import ArgumentParser
-from copy import copy
 from pathlib import Path
-from typing import Dict, List
 
 import pandas as pd
+
+from utils import get_mapping_set, add_prefixes_to_plain_id
 
 SRC_DIR = Path(__file__).parent
 PROJECT_DIR = SRC_DIR.parent
@@ -25,37 +25,20 @@ ROBOT_ROW_MAP = {
 }
 
 
-def _prefixed_id_rows_from_common_df(source_df: pd.DataFrame, mondo_col='mondo_id', xref_col='xref_id') -> List[Dict]:
-    """From worksheets having same common format, get prefixed xrefs for the namespaces we're looking to cover
-
-    Note: This same exact function is used in:
-    - mondo repo: medgen_conflicts_add_xrefs.py
-    - medgen repo: mondo_robot_template.py"""
-    df = copy(source_df)
-    df[xref_col] = df[xref_col].apply(
-        lambda x: f'MEDGENCUI:{x}' if x.startswith('CN')  # "CUI Novel"
-        else f'UMLS:{x}' if x.startswith('C')  # CUI 1 of 2: UMLS
-        else f'MEDGEN:{x}')  # UID
-    rows = df.to_dict('records')
-    # CUI 2 of 2: MEDGENCUI:
-    rows2 = [{mondo_col: x[mondo_col], xref_col: x[xref_col].replace('UMLS', 'MEDGENCUI')} for x in rows if
-             x[xref_col].startswith('UMLS')]
-    return rows + rows2
-
-
 def run(input_file: str = INPUT_FILE, output_file: str = OUTPUT_FILE):
     """Create robot template"""
     # Read input
-    df = pd.read_csv(input_file, sep='|').rename(columns={'#CUI': 'xref_id'})
-
+    df: pd.DataFrame = get_mapping_set(input_file)
     # Get explicit Medgen (CUI, CN) -> Mondo mappings
     df_medgen_mondo = df[df['source'] == 'MONDO'][['source_id', 'xref_id']].rename(columns={'source_id': 'mondo_id'})
-    out_df_cui_cn = pd.DataFrame(_prefixed_id_rows_from_common_df(df_medgen_mondo))
+    out_df_cui_cn = df_medgen_mondo.copy()
+    out_df_cui_cn['xref_id'] = out_df_cui_cn['xref_id'].apply(add_prefixes_to_plain_id)
 
     # Get Medgen (UID) -> Mondo mappings
     # - Done by proxy: UID <-> CUI <-> MONDO
     df_medgen_medgenuid = df[df['source'] == 'MedGen'][['source_id', 'xref_id']].rename(
         columns={'source_id': 'medgen_uid'})
+    # todo: should some of these steps be in _reformat_mapping_set()? to be utilized by SSSOM files?
     out_df_uid = pd.merge(df_medgen_mondo, df_medgen_medgenuid, on='xref_id').rename(
         columns={'xref_id': 'source_id', 'medgen_uid': 'xref_id'})[['mondo_id', 'xref_id', 'source_id']]
     out_df_uid['xref_id'] = out_df_uid['xref_id'].apply(lambda x: f'MEDGEN:{x}')
@@ -66,15 +49,16 @@ def run(input_file: str = INPUT_FILE, output_file: str = OUTPUT_FILE):
     out_df = pd.concat([pd.DataFrame([ROBOT_ROW_MAP]), out_df])
     out_df.to_csv(output_file, index=False, sep='\t')
 
+
 def cli():
     """Command line interface."""
     parser = ArgumentParser(
-        prog='"Medgen->Mondo robot template',
+        prog='Medgen->Mondo robot template',
         description='Create a robot template to be used by Mondo to add MedGen xrefs curated by MedGen.')
     parser.add_argument(
-        '-i', '--input-file', default=INPUT_FILE, help='Mapping file sourced from MedGen')
+        '-i', '--input-file', default=INPUT_FILE, help='Path to mapping file sourced from MedGen')
     parser.add_argument(
-        '-o', '--output-file', default=OUTPUT_FILE, help='ROBOT template to be used to add xrefs')
+        '-o', '--output-file', default=OUTPUT_FILE, help='Path to ROBOT template to be used to add xrefs')
     run(**vars(parser.parse_args()))
 
 
