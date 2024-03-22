@@ -1,8 +1,9 @@
 # MedGen ingest
 # Running `make all` will run the full pipeline. Note that if the FTP files have already been downloaded, it'll skip
 # that part. In order to force re-download, run `make all -B`.
+# todo: remove parts of old make/perl pipeline no longer used
 .DEFAULT_GOAL := all
-.PHONY: all build stage stage-% analyze clean deploy-release build-lite minimal
+.PHONY: all build stage stage-% analyze clean deploy-release build-lite minimal sssom
 
 OBO=http://purl.obolibrary.org/obo
 PRODUCTS=medgen-disease-extract.obo medgen-disease-extract.owl
@@ -14,10 +15,10 @@ minimal: build-lite stage-lite clean
 stage-lite: | output/release/
 #	mv medgen-disease-extract.owl output/release/
 #	mv medgen.sssom.tsv output/release/
-	mv medgen.obo output/release/
-	mv medgen-disease-extract.obo output/release/
-	mv medgen-xrefs.robot.template.tsv output/release/
-build-lite: medgen-disease-extract.obo medgen-xrefs.robot.template.tsv
+	mv *.obo output/release/
+	mv *.robot.template.tsv output/release/
+	mv *.sssom.tsv output/release/
+build-lite: medgen-disease-extract.obo medgen-xrefs.robot.template.tsv sssom
 
 all: build stage clean analyze
 # analyze: runs more than just this file; that goal creates multiple files
@@ -50,6 +51,11 @@ ftp.ncbi.nlm.nih.gov/:
 uid2cui.tsv: ftp.ncbi.nlm.nih.gov/
 	./src/make_uid2cui.pl > $@
 
+ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt: ftp.ncbi.nlm.nih.gov/
+	if [ -f "ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz" ]; then \
+		gzip -dk ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz; \
+	fi
+
 # ----------------------------------------
 # Main artefacts
 # ----------------------------------------
@@ -73,11 +79,16 @@ medgen-disease-extract.owl: medgen-disease-extract.obo
 	owltools $< -o $@
 
 # SSSOM ----------------------------------
-medgen.obographs.json:
-	robot convert -i medgen-disease-extract.owl -o $@
+# todo: comemented out old pipeline: remove
+#medgen.obographs.json:
+#	robot convert -i medgen-disease-extract.owl -o $@
+#
+#medgen.sssom.tsv: medgen.obographs.json
+#	sssom parse medgen.obographs.json -I obographs-json -m config/medgen.sssom-metadata.yml -o $@
+sssom: hpo-umls.sssom.tsv
 
-medgen.sssom.tsv: medgen.obographs.json
-	sssom parse medgen.obographs.json -I obographs-json -m config/medgen.sssom-metadata.yml -o $@
+hpo-umls.sssom.tsv hpo-mesh.sssom.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
+	python src/create_sssom.py --input-mappings $< --input-sssom-config config/medgen.sssom-metadata.yml
 
 # ----------------------------------------
 # Cycles	
@@ -106,9 +117,6 @@ output/medgen_terms_mapping_status.tsv output/obsoleted_medgen_terms_in_mondo.tx
 # ----------------------------------------
 # Robot templates
 # ----------------------------------------
-ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt: ftp.ncbi.nlm.nih.gov/
-	gzip -d ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz
-
 # todo: Ideally I wanted this done at the end of the ingest, permuting from medgen.sssom.tsv, but there were some
 # problems with that file. Eventually changing to that feels like it makes more sense. Will have already been
 # pre-curated by disease. And some of the logic in this Python script is duplicative.
