@@ -7,11 +7,11 @@ See also:
 - Used here: https://github.com/monarch-initiative/mondo/pull/6560
 """
 from argparse import ArgumentParser
-from copy import copy
 from pathlib import Path
-from typing import Dict, List
 
 import pandas as pd
+
+from utils import add_prefixes_to_plain_id, get_mapping_set
 
 SRC_DIR = Path(__file__).parent
 PROJECT_DIR = SRC_DIR.parent
@@ -21,48 +21,52 @@ OUTPUT_FILE = str(PROJECT_DIR / "medgen-xrefs.robot.template.tsv")
 ROBOT_ROW_MAP = {
     'mondo_id': 'ID',
     'xref_id': 'A oboInOwl:hasDbXref',
-    'source_id': '>A oboInOwl:source'
+    'source_id': '>A oboInOwl:source',
+    'source_medgen_id': '>A oboInOwl:source',
+    'mapping_predicate': '>A oboInOwl:source',
 }
 
 
-def _prefixed_id_rows_from_common_df(source_df: pd.DataFrame, mondo_col='mondo_id', xref_col='xref_id') -> List[Dict]:
-    """From worksheets having same common format, get prefixed xrefs for the namespaces we're looking to cover
-
-    Note: This same exact function is used in:
-    - mondo repo: medgen_conflicts_add_xrefs.py
-    - medgen repo: mondo_robot_template.py"""
-    df = copy(source_df)
-    df[xref_col] = df[xref_col].apply(
-        lambda x: f'MEDGENCUI:{x}' if x.startswith('CN')  # "CUI Novel"
-        else f'UMLS:{x}' if x.startswith('C')  # CUI 1 of 2: UMLS
-        else f'MEDGEN:{x}')  # UID
-    rows = df.to_dict('records')
-    # CUI 2 of 2: MEDGENCUI:
-    rows2 = [{mondo_col: x[mondo_col], xref_col: x[xref_col].replace('UMLS', 'MEDGENCUI')} for x in rows if
-             x[xref_col].startswith('UMLS')]
-    return rows + rows2
-
-
+# todo: refactor to use get_mapping_set(): (1) *maybe* use SSSOM as the intermediate standard (sssomify=True), and
+#  update column renames below. and (2) use filter_sources (already used by MeSH).
 def run(input_file: str = INPUT_FILE, output_file: str = OUTPUT_FILE):
     """Create robot template"""
     # Read input
-    df = pd.read_csv(input_file, sep='|').rename(columns={'#CUI': 'xref_id'})
+    df = get_mapping_set(input_file, add_prefixes=True, sssomify=False)
 
-    # Get explicit Medgen (CUI, CN) -> Mondo mappings
-    df_medgen_mondo = df[df['source'] == 'MONDO'][['source_id', 'xref_id']].rename(columns={'source_id': 'mondo_id'})
-    out_df_cui_cn = pd.DataFrame(_prefixed_id_rows_from_common_df(df_medgen_mondo))
+    # Mondo->MEDGEN & Mondo->UMLS
+    # 1. Get explicit Medgen (CUI, CN) -> Mondo mappings
+    df_umls_mondo = df[df['source'] == 'MONDO'][['source_id', 'xref_id']].rename(
+        columns={'source_id': 'mondo_id', 'xref_id': 'umls_cui'})
 
-    # Get Medgen (UID) -> Mondo mappings
+    # 2. Get Medgen (UID) -> Mondo mappings
     # - Done by proxy: UID <-> CUI <-> MONDO
-    df_medgen_medgenuid = df[df['source'] == 'MedGen'][['source_id', 'xref_id']].rename(
-        columns={'source_id': 'medgen_uid'})
-    out_df_uid = pd.merge(df_medgen_mondo, df_medgen_medgenuid, on='xref_id').rename(
-        columns={'xref_id': 'source_id', 'medgen_uid': 'xref_id'})[['mondo_id', 'xref_id', 'source_id']]
-    out_df_uid['xref_id'] = out_df_uid['xref_id'].apply(lambda x: f'MEDGEN:{x}')
-    out_df_uid['source_id'] = out_df_uid['source_id'].apply(lambda x: f'UMLS:{x}')
+    df_umls_medgenuid = df[df['source'] == 'MedGen'][['source_id', 'xref_id']].rename(
+        columns={'source_id': 'medgen_uid', 'xref_id': 'umls_cui'})
+    df_umls_medgenuid['medgen_uid'] = (
+        df_umls_medgenuid['medgen_uid'].apply(add_prefixes_to_plain_id))  # should/will all be MEDGEN
+    df_merged = pd.merge(df_umls_mondo, df_umls_medgenuid, on='umls_cui')
+    # - Split into (Mondo <-> Medgen UID) & (Mondo <-> UMLS CUI)
+    out_df_medgenuid = df_merged.rename(columns={'medgen_uid': 'xref_id', 'umls_cui': 'source_id'})[[
+        'mondo_id', 'xref_id', 'source_id']]
+    out_df_medgenuid['source_id'] = ''
+    out_df_umlscui = df_merged.rename(columns={'umls_cui': 'xref_id', 'medgen_uid': 'source_id'})
+
+    # Mondo->MESH
+    df_umls_mesh = get_mapping_set(input_file, filter_sources=['MeSH'], add_prefixes=True, sssomify=False)
+    df_umls_mesh['source_id'] = df_umls_mesh['source_id'].apply(lambda x: 'MESH:' + x)
+    out_df_mesh = pd.merge(df_umls_mesh, df_umls_mondo, left_on='xref_id', right_on='umls_cui').rename(
+        columns={'source_id': 'xref_id', 'xref_id': 'source_id'})[['mondo_id', 'xref_id', 'source_id']]
+
+    # Combine mappings
+    out_df = pd.concat([out_df_medgenuid, out_df_umlscui, out_df_mesh]).sort_values(['xref_id', 'mondo_id'])\
+        .drop_duplicates().fillna('')
+
+    # Add additional cols
+    out_df['source_medgen_id'] = 'MONDO:MEDGEN'
+    out_df['mapping_predicate'] = 'MONDO:equivalentTo'
 
     # Save
-    out_df = pd.concat([out_df_cui_cn, out_df_uid]).sort_values(['xref_id', 'mondo_id']).drop_duplicates().fillna('')
     out_df = pd.concat([pd.DataFrame([ROBOT_ROW_MAP]), out_df])
     out_df.to_csv(output_file, index=False, sep='\t')
 
