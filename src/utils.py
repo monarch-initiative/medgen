@@ -23,6 +23,7 @@ def add_prefixes_to_plain_id(x: str) -> str:
         else f'MEDGEN:{x}'
 
 
+# todo: Add to sssom-py. Shared between, at the least, ICD11 and MedGen repos
 def write_sssom(df: pd.DataFrame, config_path: Union[Path, str], outpath: Union[Path, str]):
     """Writes a SSSOM file"""
     with open(config_path, 'r') as yaml_file:
@@ -37,6 +38,7 @@ def write_sssom(df: pd.DataFrame, config_path: Union[Path, str], outpath: Union[
 #  common code for this and robot template, or add a param to not rename that col
 def get_mapping_set(
     inpath: Union[str, Path], filter_sources: List[str] = None, add_prefixes=False, sssomify=True,
+    filter_out_medgencui=True
 ) -> pd.DataFrame:
     """Load up MedGen mapping set (MedGenIDMappings.txt), with some modifications."""
     # Read
@@ -45,9 +47,14 @@ def get_mapping_set(
     empty_cols = [col for col in df.columns if df[col].isnull().all()]  # caused by trailing | at end of each row
     if empty_cols:
         df = df.drop(columns=empty_cols)
-    # Add prefixes
-    if add_prefixes:
-        df['xref_id'] = df['xref_id'].apply(add_prefixes_to_plain_id)
+    # Filter MEDGENCUI & add prefixes
+    df['xref_id'] = df['xref_id'].apply(add_prefixes_to_plain_id)
+    # - Filter MEDGENCUI
+    if filter_out_medgencui:
+        df = df[~df['xref_id'].str.startswith('MEDGENCUI')]
+    # - Add prefixes
+    if not add_prefixes:
+        del df['xref_id']
     # Sort
     df = df.sort_values(['xref_id', 'source_id'])
     if filter_sources:

@@ -49,7 +49,7 @@ def run(input_mappings: str = INPUT_MAPPINGS, input_sssom_config: str = INPUT_CO
     df_hpo_mesh = df_hpo_mesh[['subject_id', 'predicate_id', 'object_id', 'umls_id', 'umls_label']].sort_values(
         ['subject_id', 'object_id'], na_position='first')
     # -- add missing prefixes
-    df_hpo_mesh['object_id'] = df_hpo_mesh['object_id'].apply(lambda x: 'MESH:' + x)
+    df_hpo_mesh['object_id'] = df_hpo_mesh['object_id'].apply(lambda x: 'mesh:' + x)
     # todo: temp; (1) remove later: saving dataset with no matches, for review (2) after remove, will need to
     #  move the col removals below (umls) to above
     # - add mapping_justification
