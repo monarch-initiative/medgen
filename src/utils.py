@@ -1,10 +1,12 @@
 """Utils"""
-import os
 from pathlib import Path
-from typing import List, Set, Union
+from typing import Dict, List, Union
 
+import curies
 import pandas as pd
 import yaml
+from sssom import MappingSetDataFrame
+from sssom.writers import write_table
 
 
 def add_prefixes_to_plain_id(x: str) -> str:
@@ -21,53 +23,14 @@ def add_prefixes_to_plain_id(x: str) -> str:
         else f'MEDGEN:{x}'
 
 
-def find_prefixes_in_mapping_set(source_df: pd.DataFrame) -> Set[str]:
-    """Find prefixes in mapping set"""
-    df = source_df.copy()
-    cols_with_prefixes = ['subject_id', 'object_id', 'predicate_id']
-    prefixes = set()
-    for col in cols_with_prefixes:
-        col2 = col.replace('id', 'prefix')
-        df[col2] = df[col].apply(lambda x: x.split(':')[0]
-            if isinstance(x, str) else x)  # handles nan
-        prefixes.update(set(df[col2].to_list()))
-    return prefixes
-
-
 def write_sssom(df: pd.DataFrame, config_path: Union[Path, str], outpath: Union[Path, str]):
-    """Writes a SSSOM file with commented metadata at the top of the file.
-
-    Filters only prefxes in curie_map that exist in the mapping set."""
-    temp_filtered_config_path = str(config_path) + '.tmp'
-    # Load config
-    config = yaml.safe_load(open(config_path, 'r'))
-    # Filter curie_map
-    prefixes: Set[str] = find_prefixes_in_mapping_set(df)
-    config['curie_map'] = {k: v for k, v in config['curie_map'].items() if k in prefixes}
-    # Write
-    with open(temp_filtered_config_path, 'w') as f:
-        yaml.dump(config, f)
-    write_tsv_with_comments(df, temp_filtered_config_path, outpath)
-    os.remove(temp_filtered_config_path)
-
-
-def write_tsv_with_comments(df: pd.DataFrame, comments_file: Union[Path, str], outpath: Union[Path, str]):
-    """Write a TSV with comments at the top"""
-    # write metadata
-    f = open(comments_file, "r")
-    lines = f.readlines()
-    f.close()
-    output_lines = []
-    for line in lines:
-        output_lines.append("# " + line)
-    metadata_str = ''.join(output_lines)
-    if os.path.exists(outpath):
-        os.remove(outpath)
-    f = open(outpath, 'a')
-    f.write(metadata_str)
-    f.close()
-    # write data
-    df.to_csv(outpath, index=False, sep='\t', mode='a')
+    """Writes a SSSOM file"""
+    with open(config_path, 'r') as yaml_file:
+        metadata: Dict = yaml.load(yaml_file, Loader=yaml.FullLoader)
+    converter = curies.Converter.from_prefix_map(metadata['curie_map'])
+    msdf: MappingSetDataFrame = MappingSetDataFrame(converter=converter, df=df, metadata=metadata)
+    with open(outpath, 'w') as f:
+        write_table(msdf, f)
 
 
 # todo: for the SSSOM use case, it is weird to rename #CUI as xref_id. so maybe _get_mapping_set() should either not

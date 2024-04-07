@@ -39,5 +39,5 @@ jobs:
           output/release/medgen.obo
           output/release/medgen-disease-extract.obo
           output/release/medgen-xrefs.robot.template.tsv
-          output/release/hpo-umls.sssom.tsv
+          output/release/umls-hpo.sssom.tsv
           output/release/hpo-mesh.sssom.tsv

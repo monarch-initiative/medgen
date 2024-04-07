@@ -85,9 +85,11 @@ medgen-disease-extract.owl: medgen-disease-extract.obo
 #
 #medgen.sssom.tsv: medgen.obographs.json
 #	sssom parse medgen.obographs.json -I obographs-json -m config/medgen.sssom-metadata.yml -o $@
-sssom: hpo-umls.sssom.tsv
+sssom: umls-hpo.sssom.tsv
+	sssom validate umls-hpo.sssom.tsv
+	sssom validate hpo-mesh.sssom.tsv
 
-hpo-umls.sssom.tsv hpo-mesh.sssom.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
+umls-hpo.sssom.tsv hpo-mesh.sssom.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
 	python src/create_sssom.py --input-mappings $< --input-sssom-config config/medgen.sssom-metadata.yml
 
 # ----------------------------------------
