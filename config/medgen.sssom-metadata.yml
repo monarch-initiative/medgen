@@ -1,4 +1,4 @@
-creator_id: 0000-0002-2906-7319
+creator_id: orcid:0000-0002-2906-7319
 curie_map:
   GTR: http://purl.obolibrary.org/obo/mondo/mappings/unknown_prefix/GTR/
   HP: http://purl.obolibrary.org/obo/HP_
@@ -9,6 +9,7 @@ curie_map:
   NCIT: http://purl.obolibrary.org/obo/NCIT_
   OMIM: https://omim.org/entry/
   Orphanet: http://www.orpha.net/ORDO/Orphanet_
+  orcid: https://orcid.org/
   SCTID: http://identifiers.org/snomedct/
   UMLS: http://purl.obolibrary.org/obo/UMLS_
   oboInOwl: http://www.geneontology.org/formats/oboInOwl#
