@@ -2,7 +2,7 @@ creator_id: orcid:0000-0002-2906-7319
 curie_map:
   GTR: http://purl.obolibrary.org/obo/mondo/mappings/unknown_prefix/GTR/
   HP: http://purl.obolibrary.org/obo/HP_
-  MESH: http://identifiers.org/mesh/
+  mesh: http://identifiers.org/mesh/
   MONDO: http://purl.obolibrary.org/obo/MONDO_
   MEDGEN: http://purl.obolibrary.org/obo/MEDGEN_
   MEDGENCUI: http://purl.obolibrary.org/obo/MEDGENCUI_

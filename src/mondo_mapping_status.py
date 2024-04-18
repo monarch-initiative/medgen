@@ -19,8 +19,6 @@ MEDGEN_PREFIXES = [
 ]
 CURIE = str
 
-# TODO: Mappings can be considered skos:exactMatch
-
 def ids_prefixless(ids: Set[str]) -> Set[str]:
     """Remove prefix"""
     return set([x.split(':')[1] for x in ids])
