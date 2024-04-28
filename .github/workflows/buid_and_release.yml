@@ -11,7 +11,7 @@ on:
 jobs:
   build_and_release:
     runs-on: ubuntu-latest
-    container: obolibrary/odkfull:latest
+    container: obolibrary/odkfull:v1.5
     steps:
     - uses: actions/checkout@v2
     - name: build
