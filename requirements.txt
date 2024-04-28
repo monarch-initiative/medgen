@@ -9,6 +9,7 @@ deprecation==2.1.0
 distlib==0.3.6
 exceptiongroup==1.2.0
 filelock==3.9.0
+greenlet==3.0.3
 hbreader==0.9.1
 idna==3.6
 importlib_resources==6.4.0
@@ -47,7 +48,7 @@ six==1.16.0
 sortedcontainers==2.4.0
 SPARQLWrapper==2.0.0
 SQLAlchemy==2.0.29
-sssom==0.4.6
+sssom==0.4.7
 sssom-schema==0.15.2
 stevedore==5.0.0
 tomli==2.0.1
