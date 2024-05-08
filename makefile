@@ -52,7 +52,7 @@ uid2cui.tsv: ftp.ncbi.nlm.nih.gov/
 	./src/make_uid2cui.pl > $@
 
 ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt: ftp.ncbi.nlm.nih.gov/
-	if [ -f "ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz" ]; then \
+	@if [ -f "ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz" ]; then \
 		gzip -dk ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt.gz; \
 	fi
 
@@ -122,5 +122,7 @@ output/medgen_terms_mapping_status.tsv output/obsoleted_medgen_terms_in_mondo.tx
 # todo: Ideally I wanted this done at the end of the ingest, permuting from medgen.sssom.tsv, but there were some
 # problems with that file. Eventually changing to that feels like it makes more sense. Will have already been
 # pre-curated by disease. And some of the logic in this Python script is duplicative.
-medgen-xrefs.robot.template.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
-	python src/mondo_robot_template.py -i $< -o $@
+medgen-xrefs.robot.template.tsv medgen-xrefs-mesh.robot.template.tsv: ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt
+	python src/mondo_robot_template.py -i $< \
+	--outpath-general medgen-xrefs.robot.template.tsv \
+	--outpath-mesh medgen-xrefs-mesh.robot.template.tsv
