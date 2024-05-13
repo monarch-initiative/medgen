@@ -17,7 +17,8 @@ SRC_DIR = Path(__file__).parent
 PROJECT_DIR = SRC_DIR.parent
 FTP_DIR = PROJECT_DIR / "ftp.ncbi.nlm.nih.gov" / "pub" / "medgen"
 INPUT_FILE = str(FTP_DIR / "MedGenIDMappings.txt")
-OUTPUT_FILE = str(PROJECT_DIR / "medgen-xrefs.robot.template.tsv")
+OUTPATH_GENERAL = str(PROJECT_DIR / "medgen-xrefs.robot.template.tsv")
+OUTPATH_MESH = str(PROJECT_DIR / "medgen-xrefs-mesh.robot.template.tsv")
 ROBOT_ROW_MAP = {
     'mondo_id': 'ID',
     'xref_id': 'A oboInOwl:hasDbXref',
@@ -29,7 +30,10 @@ ROBOT_ROW_MAP = {
 
 # todo: refactor to use get_mapping_set(): (1) *maybe* use SSSOM as the intermediate standard (sssomify=True), and
 #  update column renames below. and (2) use filter_sources (already used by MeSH).
-def run(input_file: str = INPUT_FILE, output_file: str = OUTPUT_FILE, filter_out_medgencui=True):
+def run(
+    input_file: str = INPUT_FILE, outpath_general: str = OUTPATH_GENERAL, outpath_mesh: str = OUTPATH_MESH,
+    filter_out_medgencui=True
+):
     """Create robot template
 
     :param filter_out_medgencui: There should be no cases where Mondo or any other sources we care about will be
@@ -68,21 +72,23 @@ def run(input_file: str = INPUT_FILE, output_file: str = OUTPUT_FILE, filter_out
 
     # Add additional cols
     out_df['source_medgen_id'] = 'MONDO:MEDGEN'
-    # todo: could optimize by doing apply just on the xref_id col
-    def set_mapping_pred(row):
-        """Set mapping predicate"""
-        # M = Concept UI; D = Descriptor UI; C = SupplementalRecordUI; Q = Qualifier UI
-        pred = 'MONDO:equivalentTo' if row['xref_id'].startswith('mesh:M') \
-            else 'MONDO:relatedTo' if row['xref_id'].startswith('mesh:') \
-            else 'MONDO:equivalentTo'
-        return pred
-    # Context on MeSH IDs:
+    # M = Concept UI; D = Descriptor UI; C = SupplementalRecordUI; Q = Qualifier UI; context:
     #  https://docs.google.com/document/d/1ryu6isBmNEno8lyni70jBaw-D_I6tdEXpnnAK86ZWfs/edit#heading=h.3cho5esard3q
-    out_df['mapping_predicate'] = out_df.apply(set_mapping_pred, axis=1)
+    out_df['mapping_predicate'] = out_df['xref_id'].apply(
+        lambda _id: 'MONDO:equivalentTo' if _id.startswith('mesh:M')
+        else 'MONDO:relatedTo' if _id.startswith('mesh:')
+        else 'MONDO:equivalentTo')
+
+    # Split
+    mesh_selector = out_df['xref_id'].str.startswith('mesh:')
+    out_df_mesh = out_df[mesh_selector]
+    out_df = out_df[~mesh_selector]
 
     # Save
     out_df = pd.concat([pd.DataFrame([ROBOT_ROW_MAP]), out_df])
-    out_df.to_csv(output_file, index=False, sep='\t')
+    out_df.to_csv(outpath_general, index=False, sep='\t')
+    out_df_mesh = pd.concat([pd.DataFrame([ROBOT_ROW_MAP]), out_df_mesh])
+    out_df_mesh.to_csv(outpath_mesh, index=False, sep='\t')
 
 
 def cli():
@@ -93,7 +99,10 @@ def cli():
     parser.add_argument(
         '-i', '--input-file', default=INPUT_FILE, help='Path to mapping file sourced from MedGen')
     parser.add_argument(
-        '-o', '--output-file', default=OUTPUT_FILE, help='Path to ROBOT template to be used to add xrefs')
+        '-o', '--outpath-general', default=OUTPATH_GENERAL,
+        help='Path to ROBOT template to be used to add xrefs (excluding MeSH)')
+    parser.add_argument(
+        '-m', '--outpath-mesh', default=OUTPATH_MESH, help='Path to ROBOT template to be used to add xrefs (MeSH only)')
     run(**vars(parser.parse_args()))
 
 
