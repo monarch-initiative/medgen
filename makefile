@@ -8,7 +8,7 @@
 OBO=http://purl.obolibrary.org/obo
 PRODUCTS=medgen-disease-extract.obo medgen-disease-extract.owl
 TODAY ?=$(shell date +%Y-%m-%d)
-VERSION=v$(TODAY)
+VERSION=$(TODAY)
 
 minimal: build-lite stage-lite clean
 # stage-lite: These commented out files are produced by `all` but not by `minimal`. Just left here for reference. See: https://github.com/monarch-initiative/medgen/issues/11
