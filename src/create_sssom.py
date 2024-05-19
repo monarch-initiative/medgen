@@ -10,10 +10,12 @@ SRC_DIR = Path(__file__).parent
 PROJECT_DIR = SRC_DIR.parent
 FTP_DIR = PROJECT_DIR / "ftp.ncbi.nlm.nih.gov" / "pub" / "medgen"
 CONFIG_DIR = PROJECT_DIR / "config"
+OUTDIR = PROJECT_DIR / "output"
 INPUT_MAPPINGS = str(FTP_DIR / "MedGenIDMappings.txt")
 INPUT_CONFIG = str(CONFIG_DIR / "medgen.sssom-metadata.yml")
 OUTPUT_FILE_HPO_UMLS = str(PROJECT_DIR / "umls-hpo.sssom.tsv")
 OUTPUT_FILE_HPO_MESH = str(PROJECT_DIR / "hpo-mesh.sssom.tsv")
+OUTPUT_FILE_HPO_MESH_WITH_NON_MATCHES = str(OUTDIR / "hpo-mesh_non-matches-included.sssom.tsv")
 
 
 def _filter_and_format_cols(df: pd.DataFrame, source: str) -> pd.DataFrame:
@@ -54,8 +56,7 @@ def run(input_mappings: str = INPUT_MAPPINGS, input_sssom_config: str = INPUT_CO
     #  move the col removals below (umls) to above
     # - add mapping_justification
     df_hpo_mesh['mapping_justification'] = 'semapv:ManualMappingCuration'
-    write_sssom(df_hpo_mesh, input_sssom_config,
-                OUTPUT_FILE_HPO_MESH.replace('.sssom.tsv', '-non-matches-included.sssom.tsv'))
+    write_sssom(df_hpo_mesh, input_sssom_config, OUTPUT_FILE_HPO_MESH_WITH_NON_MATCHES)
     # -- filter non-matches & drop unneeded cols
     df_hpo_mesh = df_hpo_mesh[df_hpo_mesh['subject_id'].notna()][[
         x for x in df_hpo_mesh.columns if not x.startswith('umls')]]
