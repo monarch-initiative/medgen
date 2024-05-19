@@ -10,7 +10,7 @@ OUTDIR = PROJECT_DIR / 'output'
 RELEASE_OUTDIR = OUTDIR / 'release'
 INPUT_DIR = PROJECT_DIR / 'tmp' / 'input'
 MONDO_SSSOM_TSV = INPUT_DIR / 'mondo.sssom.tsv'
-MEDGEN_SSSOM_TSV = RELEASE_OUTDIR / 'medgen.sssom.tsv'
+MEDGEN_SSSOM_TSV = OUTDIR / 'medgen.sssom.tsv'
 # MEDGEN_PREFIXES: Some of these are old, some are new, some may not be used.
 # todo: If I couldn't convert SSSOM properly with MedGen_CUI, souldn't UMLS_CUI have a problem? though i think it's just coming from previous work in mondo maybe. it's not being used in this ingest
 MEDGEN_PREFIXES = [

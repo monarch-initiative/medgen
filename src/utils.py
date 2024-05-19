@@ -42,7 +42,10 @@ def get_mapping_set(
 ) -> pd.DataFrame:
     """Load up MedGen mapping set (MedGenIDMappings.txt), with some modifications."""
     # Read
-    df = pd.read_csv(inpath, sep='|').rename(columns={'#CUI': 'xref_id'})
+    df = pd.read_csv(inpath, sep='|').rename(columns={
+        '#CUI_or_CN_id': 'xref_id',
+        '#CUI': 'xref_id'  # 2024/05/19: MedGen Renamed to "#CUI_or_CN_id". Leaving this in case they change back.
+    })
     # Remove empty columns
     empty_cols = [col for col in df.columns if df[col].isnull().all()]  # caused by trailing | at end of each row
     if empty_cols:
