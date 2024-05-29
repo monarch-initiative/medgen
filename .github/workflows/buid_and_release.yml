@@ -32,9 +32,7 @@ jobs:
         title: "${{ steps.current-time.outputs.formattedTime }}"
         prerelease: false
         # todo: add back `release/medgen-disease-extract.owl`, pending https://github.com/monarch-initiative/medgen/issues/11
-        # todo: add `medgen.sssom.tsv`, pending https://github.com/monarch-initiative/medgen/issues/6
 #          output/release/medgen-disease-extract.owl
-#          output/release/medgen.sssom.tsv
         files: |
           output/release/medgen.obo
           output/release/medgen-disease-extract.obo
