@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_and_release:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     container: obolibrary/odkfull:v1.5
     steps:
     - uses: actions/checkout@v2
@@ -31,10 +31,11 @@ jobs:
         automatic_release_tag: "${{ steps.current-time.outputs.formattedTime }}"
         title: "${{ steps.current-time.outputs.formattedTime }}"
         prerelease: false
-        # todo: add back `release/medgen-disease-extract.owl`, pending https://github.com/monarch-initiative/medgen/issues/11
+        # todo: add back `release/medgen-disease-extract.owl`?, pending https://github.com/monarch-initiative/medgen/issues/11
 #          output/release/medgen-disease-extract.owl
         files: |
           output/release/medgen.obo
+          output/release/medgen.owl.gz
           output/release/medgen-disease-extract.obo
           output/release/medgen-xrefs.robot.template.tsv
           output/release/medgen-xrefs-mesh.robot.template.tsv

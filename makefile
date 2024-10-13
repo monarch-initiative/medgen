@@ -6,7 +6,8 @@
 .PHONY: all build stage stage-% analyze clean deploy-release build-lite minimal sssom sssom-validate
 
 OBO=http://purl.obolibrary.org/obo
-PRODUCTS=medgen-disease-extract.obo medgen-disease-extract.owl
+# todo: medgen-disease-extract.owl.gz?
+PRODUCTS=medgen-disease-extract.obo medgen-disease-extract.owl medgen.owl.gz
 TODAY ?=$(shell date +%Y-%m-%d)
 VERSION=$(TODAY)
 
@@ -15,9 +16,10 @@ minimal: build-lite stage-lite clean
 stage-lite: | output/release/
 #	mv medgen-disease-extract.owl output/release/
 	mv *.obo output/release/
+	mv medgen.owl.gz output/release/
 	mv *.robot.template.tsv output/release/
 	mv *.sssom.tsv output/release/
-build-lite: medgen-disease-extract.obo medgen-xrefs.robot.template.tsv umls-hpo.sssom.tsv sssom-validate
+build-lite: medgen.owl.gz medgen-disease-extract.obo medgen-xrefs.robot.template.tsv umls-hpo.sssom.tsv sssom-validate
 
 all: build stage clean analyze
 # analyze: runs more than just this file; that goal creates multiple files
@@ -67,6 +69,12 @@ ftp.ncbi.nlm.nih.gov/pub/medgen/MedGenIDMappings.txt: ftp.ncbi.nlm.nih.gov/
 # Relies on MGCONSO.RRF.gz etc being made by 'ftp.ncbi.nlm.nih.gov/' step
 medgen.obo: ftp.ncbi.nlm.nih.gov/ uid2cui.tsv
 	./src/medgen2obo.pl > $@.tmp && mv $@.tmp $@
+
+medgen.owl: medgen.obo
+	robot convert --input $< --output $@ --format owl
+
+medgen.owl.gz: medgen.owl
+	gzip -c $< > $@
 
 # We only care about diseases for now
 # - NOTE: some cancers seem to appear under Neoplastic-Process
